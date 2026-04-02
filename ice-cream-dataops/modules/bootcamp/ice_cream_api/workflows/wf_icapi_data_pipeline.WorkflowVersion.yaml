@@ -1,0 +1,53 @@
+# これは途中まで書かれています。以下のコードを参考に、ファイルを完成させてください。
+workflowExternalId: wf_icapi_data_pipeline
+version: '1'
+workflowDefinition:
+  description: 'Workflow ICAPI Data Pipeline'
+  tasks:
+  - externalId: 'wf_icapi_data_pipeline_create_asset_hierarchy_transformation_task'
+    type: 'transformation'
+    parameters:
+      transformation:
+        externalId: create_asset_hierarchy
+        concurrencyPoricy: fail
+    name: 'Task1'
+    description: 'Create_asset_hierarchy' 
+    retries: 3
+    timeout: 3600
+    onFailure: 'skipTask'
+  - externalId: 'wf_icapi_data_pipeline_contextualize_ts_assets_transformation_task'
+    type: 'transformation'
+    parameters:
+      transformation:
+        externalId: contextualize_ts_assets
+        concurrencyPoricy: fail
+    name: 'Task2'
+    description: 'Contextualize_ts_assets' 
+    retries: 3
+    timeout: 3600
+    onFailure: 'skipTask'
+    dependsOn:
+      - externalId: wf_icapi_data_pipeline_create_asset_hierarchy_transformation_task
+  - externalId: wf_icapi_datapoints_extractor_task
+    type: function
+    parameters:
+      function:
+        externalId: icapi_datapoints_extractor
+        data: { "hours": 1 }
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+      - externalId: wf_icapi_data_pipeline_contextualize_ts_assets_transformation_task
+  - externalId: wf_oee_timeseries_task
+    type: function
+    parameters:
+      function:
+        externalId: oee_timeseries
+        data: { "hours": 1 }
+    retries: 3
+    timeout: 3600
+    onFailure: abortWorkflow
+    dependsOn:
+      - externalId: wf_icapi_datapoints_extractor_task
+  
